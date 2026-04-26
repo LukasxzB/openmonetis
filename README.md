@@ -8,7 +8,7 @@
 
 > **⚠️ Não há versão online hospedada.** Você precisa clonar o repositório e rodar localmente ou no seu próprio servidor.
 
-[![Version](https://img.shields.io/badge/version-2.4.3-blue?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.4.4-blue?style=flat-square)](CHANGELOG.md)
 [![Next.js](https://img.shields.io/badge/Next.js-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-blue?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
@@ -196,13 +196,10 @@ cp .env.example .env
 # 4. Suba o banco
 pnpm docker:db
 
-# 5. Habilite extensões do PostgreSQL (apenas no primeiro setup)
-pnpm db:extensions
-
-# 6. Aplique o schema no banco (apenas no primeiro setup)
+# 5. Aplique o schema no banco (apenas no primeiro setup)
 pnpm db:push
 
-# 7. Inicie o app com hot-reload
+# 6. Inicie o app com hot-reload
 pnpm dev
 ```
 
@@ -240,7 +237,6 @@ pnpm lint:fix         # Biome auto-fix
 pnpm db:generate      # Gerar migrations
 pnpm db:migrate       # Executar migrations
 pnpm db:push          # Push schema direto (dev)
-pnpm db:extensions    # Habilitar extensões PostgreSQL (rodar uma vez)
 pnpm db:studio        # Drizzle Studio (UI visual)
 ```
 
@@ -291,8 +287,7 @@ docker compose up -d app
 docker compose exec app sh                                       # Shell da aplicação
 docker compose exec db psql -U openmonetis -d openmonetis_db    # Shell do banco
 docker compose ps                                                # Status
-docker compose exec db pg_dump -U openmonetis openmonetis_db > backup.sql   # Backup
-docker compose exec -T db psql -U openmonetis -d openmonetis_db < backup.sql  # Restore
+pnpm backup                                                      # Backup (ver seção Backup)
 ```
 
 ### Customizando portas
@@ -318,9 +313,9 @@ Cada execução gera **3 arquivos** em `backup/`:
 
 | Arquivo | Conteúdo | Uso |
 |---|---|---|
-| `openmonetis_YYYY-MM-DD_HH-MM.dump` | Dump custom do PostgreSQL (binário) | Restore completo via `pg_restore` |
-| `openmonetis_YYYY-MM-DD_HH-MM.sql.gz` | Dump SQL completo compactado | Inspeção manual, portabilidade |
-| `openmonetis_YYYY-MM-DD_HH-MM.data.sql.gz` | Apenas os dados da schema `public` | Migração parcial, seed de outro ambiente |
+| `openmonetis_YYYY-MM-DD_HH-MM.dump` | Dump custom dos schemas `public` + `drizzle` | Restore completo via `pg_restore` |
+| `openmonetis_YYYY-MM-DD_HH-MM.sql.gz` | Dump SQL compactado dos schemas `public` + `drizzle` | Inspeção manual, portabilidade |
+| `openmonetis_YYYY-MM-DD_HH-MM.data.sql.gz` | Apenas os dados do schema `public` (sem DDL) | Migração parcial, seed de outro ambiente |
 
 ### Modos de conexão
 
@@ -354,15 +349,18 @@ crontab -e
 ### Restore
 
 ```bash
-# A partir do .dump (recomendado — mais rápido)
-pg_restore --clean --no-owner --no-privileges \
-  -d "postgresql://user:senha@host:5432/openmonetis_db" \
-  backup/openmonetis_YYYY-MM-DD_HH-MM.dump
+# 1. Zerar o banco
+docker exec <container-db> psql -U openmonetis -d openmonetis_db \
+  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 
-# A partir do .sql.gz (banco local via Docker)
-gunzip -c backup/openmonetis_YYYY-MM-DD_HH-MM.sql.gz | \
-  docker compose exec -T db psql -U openmonetis -d openmonetis_db
+# 2. Restaurar schema + dados (um comando)
+docker exec -i <container-db> pg_restore \
+  -U openmonetis -d openmonetis_db \
+  --clean --if-exists --disable-triggers --no-owner --no-privileges \
+  < backup/openmonetis_YYYY-MM-DD_HH-MM.dump
 ```
+
+> `--disable-triggers` é necessário para evitar erros de FK durante o restore (os dados são inseridos fora de ordem). O usuário `openmonetis` tem permissão para isso.
 
 ---
 

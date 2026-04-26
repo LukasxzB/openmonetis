@@ -7,6 +7,33 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [2.4.4] - 2026-04-25
+
+Esta versão remove a dependência da extensão `pgcrypto` do PostgreSQL para a geração do `share_code` em pagadores. O default a nível de banco (`gen_random_bytes`) foi removido — agora a aplicação gera o código sempre via `crypto.randomBytes` do Node.js, num utilitário compartilhado. A consequência prática é que o setup inicial fica mais simples: não há mais script de habilitação de extensão, nem etapa extra no primeiro `db:push`, e bancos restaurados de dumps externos não precisam ter `pgcrypto` instalada. O script de backup também foi enxugado para gerar dumps focados nos schemas relevantes (`public` e `drizzle`), descartando os schemas internos do Supabase e eliminando os ~148 erros de restore em PostgreSQL padrão.
+
+### Alterado
+
+- Schema: coluna `share_code` em `pagadores` perdeu o default `substr(encode(gen_random_bytes(24), 'base64'), 1, 24)` — campo continua `NOT NULL` e a aplicação passa a fornecer o valor explicitamente em todas as inserções
+- Pagadores: nova função utilitária `generateShareCode()` em `src/shared/lib/payers/share-code.ts` (server-only) — usa `crypto.randomBytes(18).toString("base64url").slice(0, 24)`
+- Pagadores: `createPayerAction`, `ensureDefaultPagadorForUser`, `resetUserAppData` (settings) e `mock-data.ts` agora chamam `generateShareCode()` ao inserir um pagador
+- Backup: `scripts/backup.sh` agora dumpa apenas os schemas `public` e `drizzle` — schemas internos do Supabase (`auth`, `realtime`, `storage`, `vault`, `graphql`, `graphql_public`, `extensions`, `pgbouncer`) e suas extensions/roles deixam de poluir os dumps. Restaurações em PostgreSQL padrão passam a executar sem os ~148 erros de `role/extension does not exist`
+
+### Removido
+
+- Pasta `scripts/postgres/` (continha `init.sql` e `enable-extensions.ts`)
+- Script `pnpm db:extensions` no `package.json`
+- Referências ao `pnpm db:extensions` no README
+
+### Corrigido
+
+- Migrations: conflito de numeração resolvido — `0027_fancy_reaper` renomeado para `0028_fancy_reaper` (o número 0027 já estava ocupado pelo arquivo órfão `0027_glorious_mindworm`); journal e snapshot atualizados
+
+### Documentação
+
+- README: seção Backup atualizada — arquivos gerados agora especificam que apenas os schemas `public` e `drizzle` são dumpados
+- README: seção Restore reescrita com o fluxo correto para banco Docker (`DROP SCHEMA public CASCADE` + `pg_restore --clean --if-exists --disable-triggers`)
+- README: comando rápido de Docker Compose de backup/restore substituído por `pnpm backup`
+
 ## [2.4.3] - 2026-04-25
 
 Esta versão amplia o trabalho com lançamentos divididos: anexos passam a ser visíveis para pessoas com acesso compartilhado, a importação para conta própria copia os arquivos de forma independente e a edição ganha a opção de aplicar a alteração nos dois lados do par. Três caminhos de deleção foram corrigidos para não deixar arquivos órfãos no storage. Também traz refresh visual nos badges de tipo e radio buttons, prefetch server-side de logos para reduzir chamadas de API no dashboard, e ajustes pontuais no healthcheck do container e em rótulos da UI.
