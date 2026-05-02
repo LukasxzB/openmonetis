@@ -64,6 +64,9 @@ export function TransactionDetailsDialog({
 		: 0;
 
 	const isBoleto = transaction.paymentMethod === "Boleto";
+	const shortTransactionId = `…${
+		transaction.id.split("-").at(-1) ?? transaction.id
+	}`;
 
 	const handleEdit = () => {
 		onOpenChange(false);
@@ -120,6 +123,12 @@ export function TransactionDetailsDialog({
 								Detalhes
 							</h3>
 							<ul className="min-w-0 grid gap-2 rounded-lg border p-3">
+								<DetailRow
+									label="ID"
+									value={shortTransactionId}
+									valueClassName="font-mono"
+								/>
+
 								<DetailRow
 									label="Período"
 									value={formatPeriod(transaction.period)}
@@ -253,13 +262,16 @@ export function TransactionDetailsDialog({
 interface DetailRowProps {
 	label: string;
 	value: string;
+	valueClassName?: string;
 }
 
-function DetailRow({ label, value }: DetailRowProps) {
+function DetailRow({ label, value, valueClassName }: DetailRowProps) {
 	return (
 		<li className="min-w-0 flex items-center justify-between gap-3">
 			<span className="text-muted-foreground">{label}</span>
-			<span className="min-w-0 truncate">{value}</span>
+			<span className={`min-w-0 truncate ${valueClassName ?? ""}`}>
+				{value}
+			</span>
 		</li>
 	);
 }

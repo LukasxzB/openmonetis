@@ -42,6 +42,7 @@ import {
 	type UpdateInput,
 	updateSchema,
 	validateAllOwnership,
+	validateCardLimit,
 } from "./core";
 
 export async function createTransactionAction(
@@ -131,6 +132,20 @@ export async function createTransactionAction(
 						paidPeriods,
 					)} já estão pagas. Desfaça o pagamento antes de adicionar este lançamento.`,
 				} as ActionResult<{ ids: string[] }>;
+			}
+
+			if (data.transactionType === "Despesa") {
+				const limitCheck = await validateCardLimit({
+					userId: user.id,
+					cardId: data.cardId,
+					addAmount: Math.abs(data.amount),
+				});
+				if (!limitCheck.ok) {
+					return {
+						success: false,
+						error: limitCheck.error,
+					} as ActionResult<{ ids: string[] }>;
+				}
 			}
 		}
 
@@ -284,6 +299,22 @@ export async function updateTransactionAction(
 						paidPeriods,
 					)} já estão pagas. Desfaça o pagamento antes de mover este lançamento.`,
 				};
+			}
+		}
+
+		if (
+			data.paymentMethod === "Cartão de crédito" &&
+			data.cardId &&
+			data.transactionType === "Despesa"
+		) {
+			const limitCheck = await validateCardLimit({
+				userId: user.id,
+				cardId: data.cardId,
+				addAmount: Math.abs(data.amount),
+				excludeTransactionIds: [data.id],
+			});
+			if (!limitCheck.ok) {
+				return { success: false, error: limitCheck.error };
 			}
 		}
 
@@ -582,7 +613,7 @@ export async function toggleTransactionSettlementAction(
 		const data = toggleSettlementSchema.parse(input);
 
 		const existing = await db.query.transactions.findFirst({
-			columns: { id: true, paymentMethod: true },
+			columns: { id: true, paymentMethod: true, accountId: true },
 			where: and(
 				eq(transactions.id, data.id),
 				eq(transactions.userId, user.id),
@@ -601,18 +632,52 @@ export async function toggleTransactionSettlementAction(
 		}
 
 		const isBoleto = existing.paymentMethod === "Boleto";
+		const customPaymentDate =
+			isBoleto && data.value && data.paymentDate
+				? parseLocalDateString(data.paymentDate)
+				: null;
 		const boletoPaymentDate = isBoleto
 			? data.value
-				? getBusinessTodayDate()
+				? (customPaymentDate ?? getBusinessTodayDate())
 				: null
 			: null;
 
+		const shouldUpdateAccount =
+			isBoleto && data.value && data.paymentAccountId !== undefined;
+
+		if (shouldUpdateAccount && data.paymentAccountId) {
+			const paymentAccount = await db.query.financialAccounts.findFirst({
+				columns: { id: true },
+				where: and(
+					eq(financialAccounts.id, data.paymentAccountId),
+					eq(financialAccounts.userId, user.id),
+				),
+			});
+
+			if (!paymentAccount) {
+				return {
+					success: false,
+					error: "Conta de pagamento não encontrada.",
+				};
+			}
+		}
+
+		const updatePayload: {
+			isSettled: boolean;
+			boletoPaymentDate: Date | null;
+			accountId?: string | null;
+		} = {
+			isSettled: data.value,
+			boletoPaymentDate,
+		};
+
+		if (shouldUpdateAccount) {
+			updatePayload.accountId = data.paymentAccountId ?? null;
+		}
+
 		await db
 			.update(transactions)
-			.set({
-				isSettled: data.value,
-				boletoPaymentDate,
-			})
+			.set(updatePayload)
 			.where(
 				and(eq(transactions.id, data.id), eq(transactions.userId, user.id)),
 			);

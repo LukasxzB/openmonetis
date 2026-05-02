@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { categories, financialAccounts, transactions } from "@/db/schema";
 import {
+	ACCOUNT_BALANCE_ADJUSTMENT_NAME,
 	INITIAL_BALANCE_CATEGORY_NAME,
 	INITIAL_BALANCE_CONDITION,
 	INITIAL_BALANCE_NOTE,
@@ -17,6 +18,7 @@ import {
 } from "@/shared/lib/actions/helpers";
 import { getUser } from "@/shared/lib/auth/server";
 import { db } from "@/shared/lib/db";
+import { PERIOD_FORMAT_REGEX } from "@/shared/lib/invoices";
 import { getAdminPayerId } from "@/shared/lib/payers/get-admin-id";
 import { noteSchema, uuidSchema } from "@/shared/lib/schemas/common";
 import {
@@ -26,8 +28,11 @@ import {
 	TRANSFER_ESTABLISHMENT_SAIDA,
 	TRANSFER_PAYMENT_METHOD,
 } from "@/shared/lib/transfers/constants";
-import { formatDecimalForDbRequired } from "@/shared/utils/currency";
-import { getTodayInfo } from "@/shared/utils/date";
+import {
+	formatCurrency,
+	formatDecimalForDbRequired,
+} from "@/shared/utils/currency";
+import { getBusinessTodayDate, getTodayInfo } from "@/shared/utils/date";
 import { normalizeFilePath } from "@/shared/utils/string";
 
 const accountBaseSchema = z.object({
@@ -99,7 +104,7 @@ export async function createAccountAction(
 
 		if (hasInitialBalance && !adminPayerId) {
 			throw new Error(
-				"Pessoa com papel administrador não encontrado. Crie um pessoa admin antes de definir um saldo inicial.",
+				"Pessoa com papel administrador não encontrada. Crie uma pessoa admin antes de definir um saldo inicial.",
 			);
 		}
 
@@ -299,7 +304,7 @@ export async function transferBetweenAccountsAction(
 
 		if (!adminPayerId) {
 			throw new Error(
-				"Pessoa administrador não encontrado. Por favor, crie um pessoa admin.",
+				"Pessoa administrador não encontrada. Por favor, crie uma pessoa admin.",
 			);
 		}
 
@@ -387,6 +392,123 @@ export async function transferBetweenAccountsAction(
 			success: true,
 			message: "Transferência registrada com sucesso.",
 		};
+	} catch (error) {
+		return handleActionError(error);
+	}
+}
+
+const adjustAccountBalanceSchema = z.object({
+	accountId: uuidSchema("FinancialAccount"),
+	period: z
+		.string({ message: "Período inválido." })
+		.regex(PERIOD_FORMAT_REGEX, "Período inválido."),
+	currentBalance: z.number({ message: "Saldo atual inválido." }),
+	targetBalance: z.number({ message: "Saldo correto inválido." }),
+});
+
+type AdjustAccountBalanceInput = z.infer<typeof adjustAccountBalanceSchema>;
+
+export async function adjustAccountBalanceAction(
+	input: AdjustAccountBalanceInput,
+): Promise<ActionResult> {
+	try {
+		const user = await getUser();
+		const data = adjustAccountBalanceSchema.parse(input);
+		const adminPayerId = await getAdminPayerId(user.id);
+
+		if (!adminPayerId) {
+			throw new Error(
+				"Pessoa com papel administrador não encontrada. Crie uma pessoa admin antes de ajustar o saldo.",
+			);
+		}
+
+		let message = "Ajuste de saldo registrado.";
+
+		await db.transaction(async (tx: typeof db) => {
+			const account = await tx.query.financialAccounts.findFirst({
+				columns: { id: true },
+				where: and(
+					eq(financialAccounts.id, data.accountId),
+					eq(financialAccounts.userId, user.id),
+				),
+			});
+
+			if (!account) {
+				throw new Error("Conta não encontrada.");
+			}
+
+			const existing = await tx.query.transactions.findFirst({
+				columns: { id: true, amount: true },
+				where: and(
+					eq(transactions.userId, user.id),
+					eq(transactions.accountId, data.accountId),
+					eq(transactions.period, data.period),
+					eq(transactions.name, ACCOUNT_BALANCE_ADJUSTMENT_NAME),
+				),
+			});
+
+			const existingAmount = Number(existing?.amount ?? 0);
+			const baseBalance = data.currentBalance - existingAmount;
+			const adjustmentAmount =
+				Math.round((data.targetBalance - baseBalance) * 100) / 100;
+
+			if (adjustmentAmount === 0) {
+				if (existing) {
+					await tx.delete(transactions).where(eq(transactions.id, existing.id));
+					message = "Ajuste de saldo removido.";
+				} else {
+					message = "Nada a ajustar — o saldo já está correto.";
+				}
+				return;
+			}
+
+			const isExpense = adjustmentAmount < 0;
+			const categoryName = isExpense ? "Outras despesas" : "Outras receitas";
+
+			const category = await tx.query.categories.findFirst({
+				columns: { id: true },
+				where: and(
+					eq(categories.userId, user.id),
+					eq(categories.name, categoryName),
+				),
+			});
+
+			const amount = formatDecimalForDbRequired(adjustmentAmount);
+			const note = `O saldo era ${formatCurrency(baseBalance)} mas o correto é ${formatCurrency(data.targetBalance)}.`;
+
+			const payload = {
+				condition: INITIAL_BALANCE_CONDITION,
+				name: ACCOUNT_BALANCE_ADJUSTMENT_NAME,
+				paymentMethod: INITIAL_BALANCE_PAYMENT_METHOD,
+				note,
+				amount,
+				purchaseDate: getBusinessTodayDate(),
+				transactionType: isExpense
+					? ("Despesa" as const)
+					: ("Receita" as const),
+				period: data.period,
+				isSettled: true,
+				userId: user.id,
+				accountId: data.accountId,
+				cardId: null,
+				categoryId: category?.id ?? null,
+				payerId: adminPayerId,
+			};
+
+			if (existing) {
+				await tx
+					.update(transactions)
+					.set(payload)
+					.where(eq(transactions.id, existing.id));
+			} else {
+				await tx.insert(transactions).values(payload);
+			}
+		});
+
+		revalidateForEntity("accounts", user.id);
+		revalidateForEntity("transactions", user.id);
+
+		return { success: true, message };
 	} catch (error) {
 		return handleActionError(error);
 	}

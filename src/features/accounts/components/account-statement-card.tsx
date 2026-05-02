@@ -26,6 +26,7 @@ type AccountStatementCardProps = {
 	totalExpenses: number;
 	logo?: string | null;
 	actions?: React.ReactNode;
+	balanceAdjustment?: React.ReactNode;
 };
 
 const getAccountStatusBadgeVariant = (
@@ -45,6 +46,7 @@ export function AccountStatementCard({
 	totalExpenses,
 	logo,
 	actions,
+	balanceAdjustment,
 }: AccountStatementCardProps) {
 	const logoPath = resolveLogoSrc(logo);
 	const resultado = totalIncomes - totalExpenses;
@@ -84,10 +86,13 @@ export function AccountStatementCard({
 						<p className="text-sm text-muted-foreground ">
 							Saldo ao final do período
 						</p>
-						<MoneyValues
-							amount={currentBalance}
-							className="text-3xl leading-none tracking-tighter sm:text-2xl"
-						/>
+						<div className="flex items-center gap-2">
+							<MoneyValues
+								amount={currentBalance}
+								className="text-3xl leading-none tracking-tighter sm:text-2xl"
+							/>
+							{balanceAdjustment}
+						</div>
 						<div className="flex items-center gap-2">
 							<Badge
 								variant={getAccountStatusBadgeVariant(status)}

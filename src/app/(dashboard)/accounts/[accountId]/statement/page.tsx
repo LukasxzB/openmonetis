@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { AccountDialog } from "@/features/accounts/components/account-dialog";
 import { AccountStatementCard } from "@/features/accounts/components/account-statement-card";
+import { AdjustBalanceDialog } from "@/features/accounts/components/adjust-balance-dialog";
 import type { Account } from "@/features/accounts/components/types";
 import {
 	fetchAccountData,
@@ -141,6 +142,13 @@ export default async function Page({ params, searchParams }: PageProps) {
 				totalIncomes={totalIncomes}
 				totalExpenses={totalExpenses}
 				logo={account.logo}
+				balanceAdjustment={
+					<AdjustBalanceDialog
+						accountId={account.id}
+						period={selectedPeriod}
+						currentBalance={currentBalance}
+					/>
+				}
 				actions={
 					<AccountDialog
 						mode="update"
