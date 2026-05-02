@@ -1,4 +1,5 @@
-import { RiCheckboxCircleFill } from "@remixicon/react";
+import { RiCheckboxCircleFill, RiExternalLinkLine } from "@remixicon/react";
+import Link from "next/link";
 import {
 	buildBillStatusLabel,
 	buildBillWidgetStatusLabel,
@@ -13,14 +14,25 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
+import { getCurrentPeriod, formatPeriodForUrl } from "@/shared/utils/period";
 import { cn } from "@/shared/utils/ui";
 
 type BillListItemProps = {
 	bill: DashboardBill;
+	period?: string;
 	onPay: (billId: string) => void;
 };
 
-export function BillListItem({ bill, onPay }: BillListItemProps) {
+function buildTransactionsHref(name: string, period?: string): string {
+	const params = new URLSearchParams({ q: name });
+	const current = getCurrentPeriod();
+	if (period && period !== current) {
+		params.set("periodo", formatPeriodForUrl(period));
+	}
+	return `/transactions?${params.toString()}`;
+}
+
+export function BillListItem({ bill, period, onPay }: BillListItemProps) {
 	const statusLabel = buildBillWidgetStatusLabel(bill);
 	const absoluteStatusLabel = buildBillStatusLabel(bill);
 	const overdue = isBillOverdue(bill);
@@ -28,6 +40,7 @@ export function BillListItem({ bill, onPay }: BillListItemProps) {
 		statusLabel && statusLabel !== absoluteStatusLabel
 			? absoluteStatusLabel
 			: null;
+	const href = buildTransactionsHref(bill.name, period);
 
 	return (
 		<li className="flex items-center justify-between transition-all duration-300 py-1.5">
@@ -35,9 +48,16 @@ export function BillListItem({ bill, onPay }: BillListItemProps) {
 				<EstablishmentLogo name={bill.name} size={37} />
 
 				<div className="min-w-0">
-					<span className="block truncate text-sm font-medium text-foreground">
-						{bill.name}
-					</span>
+					<Link
+						href={href}
+						className="inline-flex max-w-full items-center gap-1 text-sm font-medium text-foreground underline-offset-2 hover:text-primary hover:underline"
+					>
+						<span className="truncate">{bill.name}</span>
+						<RiExternalLinkLine
+							className="size-3 shrink-0 text-muted-foreground"
+							aria-hidden
+						/>
+					</Link>
 					<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
 						{statusLabel ? (
 							statusTooltipLabel ? (

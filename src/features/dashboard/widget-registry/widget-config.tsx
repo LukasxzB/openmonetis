@@ -93,7 +93,10 @@ export const widgetsConfig: WidgetConfig[] = [
 		subtitle: "Resumo das faturas do período",
 		icon: <RiBillLine className="size-4" />,
 		component: ({ data }) => (
-			<InvoicesWidget invoices={data.invoicesSnapshot.invoices} />
+			<InvoicesWidget
+				invoices={data.invoicesSnapshot.invoices}
+				paymentAccountOptions={data.invoicesSnapshot.paymentAccountOptions}
+			/>
 		),
 	},
 	{
@@ -101,7 +104,13 @@ export const widgetsConfig: WidgetConfig[] = [
 		title: "Boletos",
 		subtitle: "Controle de boletos do período",
 		icon: <RiBarcodeLine className="size-4" />,
-		component: ({ data }) => <BillWidget bills={data.billsSnapshot.bills} />,
+		component: ({ data, period }) => (
+			<BillWidget
+				bills={data.billsSnapshot.bills}
+				paymentAccountOptions={data.invoicesSnapshot.paymentAccountOptions}
+				period={period}
+			/>
+		),
 	},
 	{
 		id: "payment-status",

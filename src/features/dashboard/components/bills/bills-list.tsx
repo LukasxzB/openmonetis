@@ -5,10 +5,11 @@ import { BillListItem } from "./bill-list-item";
 
 type BillsListProps = {
 	bills: DashboardBill[];
+	period?: string;
 	onPay: (billId: string) => void;
 };
 
-export function BillsList({ bills, onPay }: BillsListProps) {
+export function BillsList({ bills, period, onPay }: BillsListProps) {
 	if (bills.length === 0) {
 		return (
 			<WidgetEmptyState
@@ -22,7 +23,7 @@ export function BillsList({ bills, onPay }: BillsListProps) {
 	return (
 		<ul className="flex flex-col">
 			{bills.map((bill) => (
-				<BillListItem key={bill.id} bill={bill} onPay={onPay} />
+				<BillListItem key={bill.id} bill={bill} period={period} onPay={onPay} />
 			))}
 		</ul>
 	);
