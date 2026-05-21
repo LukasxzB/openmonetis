@@ -8,6 +8,7 @@ import { MetricsCardInfoButton } from "@/features/dashboard/components/metrics-c
 import { PercentageChangeIndicator } from "@/features/dashboard/components/percentage-change-indicator";
 import type { DashboardCardMetrics } from "@/features/dashboard/overview/dashboard-metrics-queries";
 import MoneyValues from "@/shared/components/money-values";
+import { Badge } from "@/shared/components/ui/badge";
 import {
 	Card,
 	CardContent,
@@ -102,21 +103,22 @@ const getTrend = (current: number, previous: number): Trend => {
 	return "flat";
 };
 
-const getPercentChange = (current: number, previous: number): string => {
+const getPercentChange = (current: number, previous: number): string | null => {
 	const EPSILON = 0.01;
 
 	if (Math.abs(previous) < EPSILON) {
 		if (Math.abs(current) < EPSILON) return "0%";
-		return "—";
+		return null;
 	}
 
 	const change = ((current - previous) / Math.abs(previous)) * 100;
-	if (!Number.isFinite(change)) return "—";
+	if (!Number.isFinite(change)) return null;
+	if (Math.abs(change) < TREND_THRESHOLD) return "0%";
 	if (change > 999) return "+999%";
 	if (change < -999) return "-999%";
 	return formatPercentage(change, {
-		maximumFractionDigits: 2,
-		minimumFractionDigits: 2,
+		maximumFractionDigits: 0,
+		minimumFractionDigits: 0,
 		signDisplay: "always",
 	});
 };
@@ -160,28 +162,45 @@ export function DashboardMetricsCards({ metrics }: DashboardMetricsCardsProps) {
 								<Separator className="mt-1" />
 							</CardHeader>
 
-							<CardContent className="flex flex-col gap-3">
-								<div className="flex flex-wrap items-center justify-between gap-2 mt-1">
-									<MoneyValues
-										className="text-2xl leading-none font-medium"
-										amount={metric.current}
-									/>
-									<PercentageChangeIndicator
-										trend={trend}
-										label={percentChange}
-										positiveTrend={invertTrend ? "down" : "up"}
-										showFlatIcon
-										className="gap-1"
-										iconClassName="size-3.5"
-									/>
-								</div>
+							<CardContent className="flex flex-col">
+								<div className="flex items-start justify-between mt-1">
+									<div className="flex flex-col gap-2 min-w-0">
+										<div className="flex flex-wrap items-center">
+											<MoneyValues
+												className="text-2xl leading-none"
+												amount={metric.current}
+											/>
+										</div>
 
-								<div className="text-xs text-muted-foreground">
-									<MoneyValues
-										className="inline text-xs font-medium text-muted-foreground"
-										amount={metric.previous}
-									/>
-									<span className="ml-1">no mês anterior</span>
+										<div className="text-xs text-muted-foreground gap-1 flex items-center">
+											<span className="text-muted-foreground/50">vs</span>
+											<MoneyValues
+												className="inline text-xs"
+												amount={metric.previous}
+											/>
+											<Badge
+												variant="secondary"
+												aria-hidden={!percentChange}
+												className={cn(
+													"w-14 justify-center px-0 text-xs",
+													!percentChange && "invisible",
+												)}
+											>
+												{percentChange ? (
+													<PercentageChangeIndicator
+														trend={trend}
+														label={percentChange}
+														positiveTrend={invertTrend ? "down" : "up"}
+														showFlatIcon={false}
+														className="shrink-0 justify-center text-center text-xs tabular-nums"
+														iconClassName="hidden"
+													/>
+												) : (
+													<span className="tabular-nums">0%</span>
+												)}
+											</Badge>
+										</div>
+									</div>
 								</div>
 							</CardContent>
 						</Card>

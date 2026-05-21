@@ -213,8 +213,8 @@ export const InboxCard = memo(function InboxCard({
 						variant="ghost"
 						onClick={() => onViewDetails?.(item)}
 						className="text-muted-foreground hover:text-foreground"
-						aria-label="Ver detalhes"
-						title="Ver detalhes"
+						aria-label="detalhes"
+						title="detalhes"
 					>
 						<RiFileList2Line className="size-4" />
 					</Button>

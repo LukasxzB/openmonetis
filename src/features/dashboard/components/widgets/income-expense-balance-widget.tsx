@@ -19,15 +19,15 @@ type IncomeExpenseBalanceWidgetProps = {
 const chartConfig = {
 	receita: {
 		label: "Receita",
-		color: "var(--success)",
+		color: "var(--chart-1)",
 	},
 	despesa: {
 		label: "Despesa",
-		color: "var(--destructive)",
+		color: "var(--chart-2)",
 	},
 	balanco: {
 		label: "Balanço",
-		color: "var(--warning)",
+		color: "var(--chart-3)",
 	},
 } satisfies ChartConfig;
 

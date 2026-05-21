@@ -41,9 +41,9 @@
   --input: var(--border);
   --ring: var(--primary);
 
-  --chart-1: var(--color-emerald-500);
-  --chart-2: var(--color-red-500);
-  --chart-3: var(--color-amber-500);
+  --chart-1: var(--color-orange-600);
+  --chart-2: var(--color-orange-400);
+  --chart-3: var(--color-orange-200);
   --chart-4: var(--color-blue-500);
   --chart-5: var(--color-pink-500);
   --chart-6: var(--color-stone-500);
@@ -117,13 +117,13 @@
   --destructive: oklch(62% 0.2 28);
   --destructive-foreground: oklch(98% 0.005 30);
 
-  --border: oklch(24.957% 0.00355 48.274);
+  --border: oklch(31.987% 0.00462 39.069);
   --input: var(--border);
   --ring: var(--primary);
 
-  --chart-1: var(--color-emerald-500);
-  --chart-2: var(--color-orange-500);
-  --chart-3: var(--color-indigo-500);
+  --chart-1: var(--color-orange-600);
+  --chart-2: var(--color-orange-400);
+  --chart-3: var(--color-orange-200);
   --chart-4: var(--color-amber-500);
   --chart-5: var(--color-pink-500);
   --chart-6: var(--color-stone-500);
