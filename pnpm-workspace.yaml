@@ -1,5 +1,19 @@
+packages:
+  - '.'
+
 onlyBuiltDependencies:
   - core-js
   - esbuild
   - sharp
   - unrs-resolver
+
+neverBuiltDependencies: []
+
+minimumReleaseAgeExclude:
+  - '@aws-sdk/client-s3@3.1050.0'
+  - '@aws-sdk/s3-request-presigner@3.1050.0'
+  - '@types/node@25.9.1'
+  - '@types/react@19.2.15'
+
+overrides:
+  defu: 6.1.7
