@@ -5,6 +5,13 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.6.2] - 2026-05-21
+
+Esta versão corrige o build da imagem Docker depois da atualização para `pnpm@11.1.3`. A etapa de dependências dentro do Docker não recebia a configuração do workspace, então o install congelado falhava ao comparar os `overrides` e as políticas de build com o lockfile.
+
+### Corrigido
+- Docker: o `Dockerfile` agora usa `pnpm@11.1.3` em todos os estágios e copia `pnpm-workspace.yaml` antes do `pnpm install --frozen-lockfile`, garantindo que `overrides` e `allowBuilds` sejam aplicados também no build da imagem.
+
 ## [2.6.1] - 2026-05-21
 
 Esta versão corrige o pipeline de publicação após o salto para a `2.6.0`. O build do GitHub Actions falhava antes mesmo de instalar as dependências porque o workflow ainda fixava uma versão antiga do `pnpm`, enquanto o projeto já declarava `pnpm@11.1.3` no `packageManager`.
