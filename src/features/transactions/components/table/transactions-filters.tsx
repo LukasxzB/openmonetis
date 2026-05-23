@@ -169,7 +169,7 @@ function FilterSelect({
 						hasSelection ? "text-foreground" : "text-muted-foreground",
 					)}
 				>
-					{hasSelection && renderContent
+					{current && renderContent
 						? renderContent(current.label)
 						: displayLabel}
 				</span>
