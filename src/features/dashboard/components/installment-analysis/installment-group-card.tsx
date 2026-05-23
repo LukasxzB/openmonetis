@@ -207,32 +207,23 @@ export function InstallmentGroupCard({
 						)}
 					</div>
 
-					{/* Valor selecionado */}
-					{hasSelection && (
-						<div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20 mb-4">
-							<span className="text-sm font-medium text-foreground">
-								{selectedInstallments.size}{" "}
-								{selectedInstallments.size === 1
-									? "parcela selecionada"
-									: "parcelas selecionadas"}
-							</span>
-							<MoneyValues
-								amount={selectedAmount}
-								className="text-base font-semibold text-primary"
-							/>
-						</div>
-					)}
-
 					{/* Botão para abrir detalhes */}
 					<Button
 						type="button"
 						variant="secondary"
 						size="sm"
-						className="w-full gap-1.5"
+						className="relative w-full justify-center gap-1.5"
 						onClick={() => setIsDetailsOpen(true)}
 					>
-						<RiFileList2Line className="size-4" />
-						detalhes ({group.pendingInstallments.length} parcelas)
+						<span className="inline-flex items-center gap-1.5">
+							<RiFileList2Line className="size-4" />
+							detalhes
+						</span>
+						{hasSelection && (
+							<span className="absolute right-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+								{selectedInstallments.size} sel.
+							</span>
+						)}
 					</Button>
 				</CardContent>
 			</Card>

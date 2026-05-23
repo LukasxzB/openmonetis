@@ -192,6 +192,22 @@ export async function fetchInstallmentAnalysis(
 				(i) => !i.isSettled,
 			);
 			return hasUnpaidInstallments;
+		})
+		.sort((a, b) => {
+			const progressA =
+				a.trackedInstallments > 0
+					? a.paidInstallments / a.trackedInstallments
+					: 0;
+			const progressB =
+				b.trackedInstallments > 0
+					? b.paidInstallments / b.trackedInstallments
+					: 0;
+
+			if (progressA !== progressB) {
+				return progressB - progressA;
+			}
+
+			return a.firstPurchaseDate.getTime() - b.firstPurchaseDate.getTime();
 		});
 
 	// Calcular totais
