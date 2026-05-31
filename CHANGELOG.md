@@ -5,6 +5,14 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.7.2] - 2026-05-31
+
+Esta versão atualiza as imagens de apresentação do OpenMonetis na landing page e no compartilhamento em redes sociais.
+
+### Alterado
+- Landing page: atualizadas as imagens de preview do dashboard e da versão PWA.
+- Compartilhamento: ajustada a imagem usada nos metadados sociais da landing page.
+
 ## [2.7.1] - 2026-05-30
 
 Esta versão melhora a clareza dos fluxos de lançamento e a experiência do dashboard. Boletos de receita agora diferenciam pagamentos de recebimentos, a navegação mensal ficou mais direta e o painel ganhou atalhos mais úteis com personalização simplificada.
